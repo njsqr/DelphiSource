@@ -1,0 +1,61 @@
+USB口的打印机发ESC转义指令开钱箱
+
+var sMoneyBoxOpenCommand='不同的打印机，指令不同';  
+  
+TOutBufPassThrough = record       //调用windows.extEscape可以直接用extEscape(handle, PASSTHROUGH, sizeOf(outBuf), @outBuf, 0, nil)向设备发送esc命令   
+      nDataLen:word;  
+      sEscData:array [0..1024] of char;  
+    end;  
+  
+var prt:TPrinter;       
+    esc:TOutBufPassThrough;  
+  
+     try                                        //驱动开   
+        prt:=printers.Printer;  
+        prt.beginDoc;               //没办法，必须的   
+        esc.nDataLen:=length(sMoneyBoxOpenCommand);  
+        strpCopy(esc.sEscData, sMoneyBoxOpenCommand);  
+        windows.ExtEscape(prt.Handle, PASSTHROUGH, sizeOf(esc), @esc, 0, nil);  ////PASSTHROUGH：允许程序直接发送数据到设备   
+        prt.endDoc;       //这里会导致打印机走一小段纸，也没找到好办法   
+     except  
+        on x:Exception do ;  
+    end;  
+  
+=================================
+指令 27,112,0,128,128
+或
+指令 #27+#112+#0+#128+#128
+
+===============================
+ESC p m t1 t2 产生钱箱控制脉冲 
+
+[功能描述] 产生钱箱控制脉冲
+
+[数据格式] ASCII  ESC  p   m   t1  t2
+
+Hex 1B     70   m    t1  t2
+
+Decimal 27    112   m    t1  t2
+
+[取值范围] m = 0, 48
+
+0 ≤ t1 ≤ 255, 0 ≤ t2 ≤ 255
+
+[应用注释] 输出由t1和t2设定的钱箱开启脉冲到由m指定的引脚：
+
+
+m
+ 
+连接引脚
+ 
+
+0, 48
+ 
+钱箱插座的引脚 2
+ 
+
+钱箱开启时间为 [ t1 × 2 ms]，关断时间为 [ t2 × 2 ms]；
+
+如果 t2 < t1，关断时间为 [ t1 × 2 ms]；
+
+如果 t1 > 20，则t1 = 20。

@@ -1,0 +1,4 @@
+%BTW% /AF="D:\sqr\delphi\bar-commander\InvoiceServer\SoftwareInvoice.btw" /D="%Trigger File Name%" /PRN="Zebra ZM400 (300 dpi) - ZPL" /R=3 /P /DD
+%END%
+"Far Fetched Imports","Jerry Bom","manager","3320 Happy St.","Incident","Washington","98887","USA","(444) 555-7788","(444) 555-6750"
+

@@ -1,0 +1,214 @@
+一、Delphi用户登录窗口框架
+经常看到一些新手在CSDN上问登录窗口如何写，也看到N多人form1.show/form1.create/…中做form2.show之类。实在看不下去了。这种写法实在不是很好，
+于是还是把自己理解的登录框架来写写吧。希望能给新人一些引导（可不要误导了呀！）
+
+1.登录窗口在什么地方调用？
+
+我说：最好在项目文件中，splash窗口显示过，一些需要加载的资源、窗口加载过后，Application.Run之前，进行用户登录。此时，可能用到的数据连接已经建立起来了，登录就可以进系统。
+
+2.如何调用登录窗口？
+
+我说：在登录窗口单元提供一个函数出来吧，比如Login():Boolean; 这样在要到的地方直接调用LoginF.Login()就可以呼叫登录窗口，并使用标准逻辑了。
+毕竟，你的登录窗口在系统中至少有两个地方要用到（启动时、重新登录时）.
+
+//项目文件代码
+program KBS;
+
+uses
+  Forms,
+  Windows,
+  MainF in 'MainF.pas' {frmMain},
+  SplashF in 'SplashF.pas' {frmSplash},
+  mainDM in 'mainDM.pas' {dmMain: TDataModule},
+  LoginF in 'LoginF.pas' {frmLogin};
+
+{$R *.RES}
+
+var
+  frmMain: TfrmMain;
+  dmMain: TdmMain;
+begin
+  Application.Initialize;
+  //显示封面
+  SplashF.Show;
+  try
+    //创建需要的资源
+    Application.CreateForm(TdmMain, dmMain);
+    Application.CreateForm(TfrmMain, frmMain);
+    //...其它
+  finally
+    SplashF.Close;
+  end;
+
+  if LoginF.Login() then  //呼叫登录窗口：就这一行，简单吧！
+    Application.Run;
+end.
+3.登录窗口如何写？
+
+我说：这个比较简单，直接上代码吧。有不懂的再交流。
+
+unit LoginF;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  ExtCtrls, StdCtrls, Buttons;
+
+type
+  TfrmLogin = class(TForm)
+    pnl1: TPanel;
+    edUserName: TEdit;
+    lblUserName: TLabel;
+    edPasswd: TEdit;
+    lblPasswd: TLabel;
+    btnOK: TBitBtn;
+    btnCancel: TBitBtn;
+    procedure FormCreate(Sender: TObject);
+    procedure btnOKClick(Sender: TObject);
+  private
+    FTryTimes: Integer;
+    function CheckUserInfo(AUserName, APassword: string): Boolean;
+  public
+  end;
+
+function Login: Boolean;  //登录函数
+
+implementation
+
+{$R *.DFM}
+
+function Login: Boolean;
+begin
+  //动态创建登录窗口
+  with TfrmLogin.Create(nil) do
+  begin
+    //只有返回OK的时候认为登录成功!!!!!要把button的ModalResult=mrNone只要不是mrok
+    Result := ShowModal() = mrOk;
+    Free;
+  end;
+end;
+
+function TfrmLogin.CheckUserInfo(AUserName, APassword: string): Boolean;
+begin
+  //简单的验证，可以修改为其它的方式
+  Result := (AUserName = 'lihd' ) and (APassword = 'P@ssw0rd');
+end;
+
+procedure TfrmLogin.FormCreate(Sender: TObject);
+begin
+  //尝试登录的次数，初始化为0
+  FTryTimes := 0;
+end;
+
+procedure TfrmLogin.btnOKClick(Sender: TObject);
+begin
+  Inc(FTryTimes); //尝试登录的次数 + 1
+  
+  if CheckUserInfo(edUserName.Text, edPasswd.Text) then
+  begin
+    //如果通过检查，返回OK
+    Self.ModalResult := mrOk;
+  end else
+  begin
+    if (FTryTimes > 2) then
+    begin
+      MessageBox(self.Handle, '你已经尝试登录3次，请联系系统管理员。', '错误', MB_OK + MB_ICONERROR);
+      Self.ModalResult := mrCancel;
+      Exit;
+    end;
+
+    //通不过，报错
+    MessageBox(self.Handle, '错误的用户名或密码，请重新输入!', '错误', MB_OK + MB_ICONERROR);
+    edUserName.SetFocus();
+    edUserName.SelectAll();
+  end;    
+end;
+
+end.
+最后，啰嗦一句：一定要好好命名函数和控件！不要一大篇form1/form2/…edit1/edit2/…要多写注释！代码缩进要有章法！
+
+对新手推荐两个Delphi插件：CnPack(插件包，很强！) 和 DelForEx(格式化代码插件)-本站下载
+
+-----------------------------------------------------------------------------------------------
+
+二、在project启动文件编辑以下内容，可保证程序只运行一个实例。
+program Project1;
+
+uses
+  Forms,
+  Windows,
+  LoginF in 'LoginF.pas' {frmLogin},
+  mainDM in 'mainDM.pas' {dmMain: TDataModule},
+  MainF in 'MainF.pas' {frmMain};
+
+{$R *.res}
+
+var
+
+  mymutex: THandle;
+
+begin
+
+  mymutex := CreateMutex(nil, True, '营收数据自检系统');
+  if GetLastError <> ERROR_ALREADY_EXISTS then
+  begin
+    Application.Title := '营收数据自检系统';
+    Application.Initialize;
+    //显示封面
+  //  SplashF.Show;
+    try
+      //创建需要的资源
+    Application.CreateForm(TdmMain, dmMain);
+    Application.CreateForm(TfrmMain, frmMain);
+    //...其它
+    finally
+  //    SplashF.Close;
+    end;
+
+    if LoginF.Login()  then  //呼叫登录窗口：就这一行，简单吧！
+      Application.CreateForm(TfrmLogin, frmLogin);
+    Application.Run;
+  end
+  else
+    begin
+      MessageBox(mymutex, '程序已在运行中', '提示:营收数据自检系统',  mb_IconInformation + mb_Ok);
+
+    end;
+end.
+
+
+--------------------------------------------------------------
+三、Delphi中MD5实现方法
+
+复制代码
+原来写过一个计算MD5的程序,是用了一个叫MD5.pas的单元,使用起来还算简单,但还有更简单的办法,安装了indy就会有IdHashMessageDigest单元(delphi 7默认安装indy)
+
+有篇文章教怎么用IdHashMessageDigest计算字符串md5,计算文件md5却没有说,在这里补充一下,先看计算函数:
+
+function TIdHashMessageDigest4.HashValue(AStream: TStream): T4x4LongWordRecord;参数类型是一个流就可以返回T4x4LongWordRecord类型的值,
+使用function TIdHash128.AsHex(const AValue: T4x4LongWordRecord): string;把T4x4LongWordRecord转换为字符串就可以显示出来,到这里就简单了,
+把一个文件以流的方式读取,使用HashValue就计算出MD5了,流的使用很简单,TFileStream.Create(const FileName: string; Mode: Word);
+参数FileName就是文件的路径,Mode就是打开方式,使用fmOpenRead以读方式打开,如果要计算大型文件最好使用线程来操作.以下是实例代码:
+
+在uses添加IdHashMessageDigest
+
+procedure TForm1.Button1Click(Sender: TObject);
+
+var
+
+  mymd5:TIdHashMessageDigest5;
+
+begin
+
+mymd5:=TIdHashMessageDigest5.Create;
+
+ShowMessage(mymd5.AsHex(mymd5.HashValue('admin')));//计算字符串admin的MD5
+
+ShowMessage(Copy(mymd5.AsHex(mymd5.HashValue('admin')),9,16));//获取16位字符串MD5
+
+ShowMessage(mymd5.AsHex(mymd5.HashValue(TFileStream.Create('e:\VRMPVOL_CNsp2.iso',fmOpenRead))));//计算文件MD5
+
+mymd5.Free;
+
+end;

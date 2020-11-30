@@ -1,0 +1,4 @@
+%BTW% /AF="D:\sqr\delphi\bar-commander\InvoiceServer\HardwareInvoice.btw" /D="%Trigger File Name%" /PRN="\\OHLZKAGX6QNZP68\HP LaserJet 1020" /R=3 /P /DD
+%END%
+Around the Town,Jerome Davis,¹ºÂòÕß,1220 Governor Sq.,Hadden,Alberta,WA1 1DP,¼ÓÄÃ´ó,(171) 555-7788,(171) 555-6750
+

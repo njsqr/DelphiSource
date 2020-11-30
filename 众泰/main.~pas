@@ -1,0 +1,365 @@
+unit main;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, Buttons, ExtCtrls, ComCtrls,dateutils,StrUtils,Registry;
+
+type
+  TF_main = class(TForm)
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    GroupBox1: TGroupBox;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    ComboBox1: TComboBox;
+    Edit5: TEdit;
+    BitBtn1: TBitBtn;
+    BitBtn2: TBitBtn;
+    DateTimePicker1: TDateTimePicker;
+    RadioGroup2: TRadioGroup;
+    Edit4: TEdit;
+    Label7: TLabel;
+    Edit3: TEdit;
+    Label8: TLabel;
+    ComboBox2: TComboBox;
+    Label9: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    procedure BitBtn2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure RadioGroup2Click(Sender: TObject);
+    procedure BitBtn1Click(Sender: TObject);
+    procedure Edit4KeyPress(Sender: TObject; var Key: Char);
+    procedure ComboBox2Change(Sender: TObject);
+    procedure ComboBox1KeyPress(Sender: TObject; var Key: Char);
+    procedure ComboBox1Change(Sender: TObject);
+    procedure Label10Click(Sender: TObject);
+  private
+    { Private declarations }
+    procedure printbarcode(var map,number:string);
+
+  public
+    { Public declarations }
+  end;
+
+  function GETFONTHEX(chnstr: string; fontname: string; orient: integer; height: integer; width: integer; bold: integer; italic: integer; hexbuf: string): integer; stdcall; external 'fnthex32.dll';
+  function PrtChnStr(x, y: integer; fontname: string; height, xmf, ymf: integer; chnstr: string): string;
+
+
+var
+  F_main: TF_main;
+  re_id,max:integer;
+
+implementation
+
+
+{$R *.dfm}
+
+function PrtChnStr(x, y: integer; fontname: string; height, xmf, ymf: integer; chnstr: string): string;
+var
+  buf, ret: string;
+  count: integer;
+begin
+  result := '';
+  setlength(buf, 21 * 1024);
+  count := GETFONTHEX(chnstr, fontname, 0, height, 0, 1, 0, buf);
+  if count > 0 then
+  begin
+    ret := Copy(buf, 1, count);
+    result := ret + '^FO' + inttostr(x) + ',' + inttostr(y) + '^XGOUTSTR01,' + inttostr(xmf) + ',' + inttostr(ymf) + '^FS';
+  end;
+end;
+
+procedure TF_main.printbarcode(var map,number:string);
+var prtstr:string;
+    filehandle:integer;
+begin
+  prtstr := '^XA^IA6^XZ^FS^XA^FS^BY1.5,2.5^LH20,23^FS';
+  prtstr := prtstr + '^FO' + '35,15' +'^BA' + ',' + '95,N'+'^AEN^FD';        //code 93
+  prtstr := prtstr +trim(map)+'^FS' ;
+  prtstr := prtstr + PrtChnStr(47, 110, '黑体', 16, 2, 2, pchar('*'+map+'*'));
+
+  prtstr := prtstr + '^FO' + '35,180' +'^BA' + ',' + '95,N'+'^AEN^FD';        //code 93
+  prtstr := prtstr +trim(map)+'^FS' ;
+  prtstr := prtstr + PrtChnStr(47, 280,'黑体',16, 2, 2, pchar('*'+map+'*'));
+
+  prtstr := prtstr + '^PQ'+number+'^FS'; //打印1份
+  prtstr := prtstr + '^PRC^FS^XZ^FS^XA^EG^XZ'; //打印结束
+//
+// showmessage(prtstr);
+//
+  filehandle := fileopen('LPT1', fmOpenWrite);
+  if filehandle > 0 then
+    filewrite(filehandle, prtstr[1], length(prtstr))
+  else
+    showmessage('打开并口错误');
+  fileclose(filehandle);
+end;
+
+procedure TF_main.BitBtn2Click(Sender: TObject);
+begin
+  close;
+end;
+
+procedure TF_main.FormCreate(Sender: TObject);
+var
+  registerTemp:TRegistry;
+  inputstr,get_id:string;
+  dy,clickedok:boolean;
+begin
+  DateTimePicker1.Date:=today;
+  max:=60;
+  dy:=false;
+  //软件是否到注册期、允许使用的标志；false是允许使用。
+  registerTemp:=TRegistry.Create;//准备使用注册表
+  with registerTemp do
+    begin
+      RootKey:=HKEY_LOCAL_MACHINE; //存放在此根下
+      if OpenKey('Software\Microsoft\Windows\CurrentVersion\Mark\Chery',true) then
+       //建立一目录，存放标志值。当然可放在已存在的目录下。怎么样，很难发现吧？
+        begin
+          if valueexists('gc_id') then
+            //用gc_id的值作标志，先判断存在否？
+            begin
+              re_id:=readinteger('gc_id');//读gc_id的值
+              if (re_id<>0)and (re_id<>max) then //如为0，则已注册
+                //如不到max，即虽未注册，但次数未到，可用;
+                begin
+                  Label11.Caption:='试用期次数还剩： '+inttostr(max-re_id-1)+' 次,  Tel:   570';
+                  inc(re_id);
+                  Writeinteger('gc_id',re_id);//将更新的标志值写入注册表中
+                  //程序往下执行
+                end;
+              if (re_id=max) then
+                dy:=true;
+            end
+          else
+            Writeinteger('gc_id',1); //建立标志，置初值
+
+        end;
+      if dy then
+        begin
+          inputstr:='';
+          clickedok:=InputQuery('注册码输入框','您使用的是非注册软件,请输入注册码:',inputstr);
+          if clickedok then
+            begin
+              get_id:=inttostr(27583756*2);//注册码为55167512；
+              if get_id=inputstr then
+                begin
+                  Writeinteger('gc_id',0); //注册，置值0；
+                  CloseKey;
+                  Free;
+                end
+              else //如输入的注册码错
+                if inputstr='作者制作的程序真好！！！谢谢！！！' then
+                  begin
+                    Writeinteger('gc_id',max-1); //置值1次，可以延长有效期；
+                    CloseKey;
+                    Free;
+                  end
+                else
+                  begin
+                    application.MessageBox('注册码错误！请与作者联系！02552717185-570','警告框',mb_ok);
+                    CloseKey;
+                    Free;
+                    application.Terminate;//程序中止
+                  end;
+            end
+          else //如不输入的注册码
+            begin
+              application.MessageBox('您没有输入注册码！请与作者联系！02552717185-570','警告框',mb_ok);
+              CloseKey;
+              Free;
+              application.Terminate;//程序中止
+            end;
+        end;
+    end;
+
+end;
+
+procedure TF_main.RadioGroup2Click(Sender: TObject);
+begin
+  if RadioGroup2.ItemIndex=1 then
+    begin
+      edit4.ReadOnly :=false;
+      edit4.SetFocus;
+      if trim(edit4.Text)='0' then
+        begin
+          showmessage('返修次数应该大于零！！！');
+          edit4.SetFocus;
+        end;
+    end
+  else
+    begin
+      edit4.text:='0';
+      edit4.ReadOnly :=true;
+    end;
+end;
+
+procedure TF_main.BitBtn1Click(Sender: TObject);
+var
+  code,n,s_code:string;
+  i,j,k,s_CheckDigit:integer;
+  y,m,d:word;
+  y_Arr:array[0..30] of char;
+  m_Arr:array[0..11] of char;
+  d_Arr:array[0..30] of char;
+  xy_Arr:array[0..36] of char;
+begin
+  y_Arr:= '123456789ABCDEFGHJKLMNPRSTVWXY';
+  m_Arr:= 'ABCDEFGHJKLM';
+  d_Arr:= '123456789ABCDEFGHJKLMNPRSTUVWXY';
+  xy_Arr:='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  code:=edit1.Text+combobox2.Text+edit2.Text;
+  decodedate(DateTimePicker1.Date,y,m,d);
+  //年月日
+  code:=code+y_Arr[y-2001]+m_Arr[m-1]+d_Arr[d-1];
+  if combobox2.ItemIndex=-1 then
+    begin
+      showmessage('追溯件组号不能为空！！！'+#13+#13+'请重新选择追溯件组号...');
+      combobox2.SetFocus
+    end
+  else
+    begin
+      if (MessageBox(Handle,'追溯件组号确认了么？','提示',MB_YESNO or MB_ICONwarning)=7) then
+        Combobox1.SetFocus
+      else
+        begin
+          for k:=1 to strtoint(edit3.Text) do
+            begin
+              if k mod 10=0 then sleep(100);
+              s_code:=code;
+              s_CheckDigit:=0;
+              s_code:=s_code+Format('%.4d', [strtoint(combobox1.Text)]);  //批次号：数列号0001，0002.....
+              combobox1.Text:= Format('%.4d', [strtoint(combobox1.Text)+1]);
+              for i:=1 to 15 do
+                begin
+                  for j:=0 to 35 do
+                    begin
+                      if s_code[i]=xy_Arr[j] then
+                        s_CheckDigit:=s_CheckDigit+j;
+                    end;
+                end;
+              s_CheckDigit:=s_CheckDigit mod 36;
+              edit5.text:=xy_Arr[s_CheckDigit];//校验码
+              s_code:=s_code+xy_Arr[s_CheckDigit]+Edit4.Text;
+          //返工码
+              n:='1';  //打印数量
+              printbarcode(s_code,n);   //打印
+            end;
+        end;
+    end;
+end;
+
+procedure TF_main.Edit4KeyPress(Sender: TObject; var Key: Char);
+begin
+  if not (key in['0'..'9','.',#8]) then
+    begin
+      key:=#0;
+      messagebeep(1);
+    end;
+end;
+
+procedure TF_main.ComboBox2Change(Sender: TObject);
+var i,flag:integer;
+begin
+  flag:=0;
+  Combobox1.text:='0001';
+  for i:=0 to combobox2.Items.Count-1 do
+    if combobox2.Text = combobox2.Items[i] then
+      begin
+        flag:=1;
+        if combobox2.Items[i]='005' then
+          label9.Caption:='WXH-086-HE0';
+        if combobox2.Items[i]='006' then
+          label9.Caption:='ATC-E36CK-7';
+        if combobox2.Items[i]='010' then
+          label9.Caption:='E26A320A-2665HS';
+        if combobox2.Items[i]='011' then
+          label9.Caption:='WXH-066-W0';
+        if combobox2.Items[i]='014' then
+          label9.Caption:='WXH-106-K29C';
+        if combobox2.Items[i]='027' then
+          label9.Caption:='WXH-066-BC6';
+        if combobox2.Items[i]='028' then
+          label9.Caption:='WXH-086-HM0';
+        if combobox2.Items[i]='030' then
+          label9.Caption:='WXH-106-K59';
+        if combobox2.Items[i]='031' then
+          label9.Caption:='WXH-086-HM1';
+        if combobox2.Items[i]='032' then
+          label9.Caption:='E26A350A-2665HS';
+        if combobox2.Items[i]='033' then
+          label9.Caption:='E26A320A-2665HSY';
+        if combobox2.Items[i]='034' then
+          label9.Caption:='E26A320A-26.165HSY4';
+        if combobox2.Items[i]='035' then
+          label9.Caption:='WXH-106-BC2';
+      end;
+    if flag<>1 then
+      begin
+        showmessage('请重新选择追溯件组号！！！');
+        combobox2.ItemIndex:=-1;
+        combobox2.SetFocus;
+      end;
+end;
+
+procedure TF_main.ComboBox1KeyPress(Sender: TObject; var Key: Char);
+begin
+  if not (key in['0'..'9',#8]) then
+    begin
+      key:=#0;
+      messagebeep(1);
+    end;
+end;
+
+procedure TF_main.ComboBox1Change(Sender: TObject);
+var n:integer;
+begin
+  n:=strtoint(combobox1.Text);
+  if (n>9999) or (n<1) then
+    begin
+      showmessage('请重新输入四位批号！！！');
+      combobox1.Text:='0001' ;
+      combobox1.SetFocus;
+    end ;
+
+end;
+
+procedure TF_main.Label10Click(Sender: TObject);
+var
+  registerTemp:TRegistry;
+begin
+  registerTemp:=TRegistry.Create;//准备使用注册表
+  with registerTemp do
+    begin
+      RootKey:=HKEY_LOCAL_MACHINE; //存放在此根下
+      if OpenKey('Software\Microsoft\Windows\CurrentVersion\Mark\Chery',true) then
+       //建立一目录，存放标志值。当然可放在已存在的目录下。
+        if valueexists('gc_id') then
+          //用gc_id的值作标志，先判断存在否？
+          begin
+            re_id:=readinteger('gc_id');//读gc_id的值
+            if (re_id=max-1) then //
+                //如到max-1，可延长用;
+              begin
+                Writeinteger('gc_id',1); //建立标志，置初值
+                application.MessageBox('软件试用期已延长！要注册请联系02552717185-570','恭喜您！',mb_ok);
+                CloseKey;
+                Free;
+              end;
+          end;
+
+    end;
+end;
+
+end.
+
+

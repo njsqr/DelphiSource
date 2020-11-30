@@ -1,0 +1,222 @@
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls,winspool,printers;
+
+
+{$IFNDEF WIN32}
+  const MAX_PATH = 144;
+{$ENDIF}
+
+type
+  TForm1 = class(TForm)
+    Button1: TButton;
+    ComboBox1: TComboBox;
+    Button2: TButton;
+    Button3: TButton;
+    Button4: TButton;
+    Memo1: TMemo;
+    PrintDialog1: TPrintDialog;
+    Button5: TButton;
+    Button6: TButton;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    Edit3: TEdit;
+    Button7: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
+
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+procedure WriteRawStringToPrinter(PrinterName:String; S:String);       // 用到uses winspool,printers
+var  Handle: THandle;
+  N: DWORD;
+  DocInfo1: TDocInfo1;
+begin
+  if not OpenPrinter(PChar(PrinterName), Handle, nil) then
+  begin
+    ShowMessage('error ' + IntToStr(GetLastError));
+    Exit;
+  end;
+  with DocInfo1 do begin
+   pDocName := PChar('test doc'); {在打印列表中显示的打印内容}
+    pOutputFile := nil;
+    pDataType := 'RAW';            {关键数据类型必须是RAW这样打印机通过驱动程序
+才能识别ZPL语言} 
+  end;
+  StartDocPrinter(Handle, 1, @DocInfo1); 
+  StartPagePrinter(Handle);
+  WritePrinter(Handle, PChar(S), Length(S), N); 
+  EndPagePrinter(Handle); 
+  EndDocPrinter(Handle);
+  ClosePrinter(Handle); 
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var 
+  ZPL: string;
+  slist: TStringList;
+begin
+  slist := TStringList.Create;
+  slist.Clear; 
+  slist.LoadFromFile('e:\ZPL.TXT');  {将ZPL语言放入文本文件中方便调用} 
+  ZPL := slist.Text;
+  WriteRawStringToPrinter(ComboBox1.Text,ZPL); {此处COMBOBOX1.TXT为安装过驱动程序的
+ZEBRA打印机名称你可手工输入也可自动获取} 
+end;
+
+
+
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  ZPL: string;
+  sList: TStringList;
+begin
+  sList := TStringList.Create;
+  try
+    sList.Add('^XA^FO50,50^BCN,150^FD12345^FS^XZ');
+    ZPL := sList.Text;
+    WriteRawStringToPrinter(ComboBox1.Text, ZPL);    //我的打印机名ComboBox1.Text
+  finally
+    sList.Free;
+  end;
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+var
+    AppName : Array [0..256] of Char;    //节名称字符串 
+    KeyName : Array [0..256] of Char; //键名称字符串 
+    DefaultString : Array [0..256] of Char; //在键名没找到时默认返回的字串 
+    ReturnedString : Array [0..256] of Char; //在键名找到时返回的字串 
+begin
+    AppName := 'Windows';//节名称 
+    KeyName := 'device';    //键名称 
+    GetProfileString(AppName,KeyName,DefaultString,ReturnedString,Sizeof(ReturnedString));
+    ShowMessage(ReturnedString);          //找的是缺省的打印机
+
+
+
+end;
+
+procedure TForm1.FormShow(Sender: TObject);
+begin
+   ShowMessage(Printer.Printers[0]);   // 显示本地打印机名称
+
+  combobox1.Clear;
+      combobox1.Items.Assign(Printer.Printers);
+      if combobox1.Items.Count = 0 then
+      begin
+          showmessage('没有安装打印机！');
+      end;
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+var
+  pDevice : pChar;                  //   {$IFNDEF WIN32}   const MAX_PATH = 144;  {$ENDIF}
+  pDriver : pChar;
+  pPort   : pChar;
+  hDMode : THandle;
+begin
+  if PrintDialog1.Execute then
+    begin
+    GetMem(pDevice, cchDeviceName);
+    GetMem(pDriver, MAX_PATH);
+    GetMem(pPort, MAX_PATH);
+
+    Printer.GetPrinter(pDevice, pDriver, pPort, hDMode);
+    if lStrLen(pDriver) = 0 then begin
+      GetProfileString('Devices', pDevice, '', pDriver, MAX_PATH);
+      pDriver[pos(',', pDriver) - 1] := #0;
+    end;
+    if lStrLen(pPort) = 0 then begin
+      GetProfileString('Devices', pDevice, '', pPort, MAX_PATH);
+      lStrCpy(pPort,  @pPort[lStrLen(pPort)+2]);
+    end;
+    Memo1.Lines.Add('Device := ' + StrPas(pDevice));
+    Memo1.Lines.Add('Driver := ' + StrPas(pDriver));
+    Memo1.Lines.Add('Port := ' + StrPas(pPort));
+
+    if strpas(pport)='USB001' then
+ //   if sametext('XPSPort:','XPSPORt:')=true then
+    showmessage( StrPas(pDevice)+':'+strpas(pport));
+
+    FreeMem(pDevice, cchDeviceName);
+    FreeMem(pDriver, MAX_PATH);
+    FreeMem(pPort, MAX_PATH);
+
+
+   //  Printer.PrinterIndex :=-1;    //没有用，不理解：如果设置为为-1,则为系统默认打印机;
+
+  end;
+end;
+
+procedure TForm1.Button5Click(Sender: TObject);
+var
+  prtstr: string;
+
+begin
+  prtstr := '^XA^IA6^XZ^FS^XA^FS^BY2,2^LH20,23^FS';
+  prtstr := prtstr + '^FO' + '15,12' +'^BC' + ',' + '140^AEN^FD';   //128code
+  prtstr := prtstr +'^SN'+'12345678'+',,Y^FS' ;
+  prtstr := prtstr + '^PQ'+'5'+'^FS'; //打印1份
+  prtstr := prtstr + '^PRC^FS^XZ^FS^XA^EG^XZ'; //打印结束
+
+
+    WriteRawStringToPrinter(ComboBox1.Text, prtstr);    //我的打印机名ComboBox1.Text
+    
+
+end;
+
+
+function replacing(source:string;ch:char):string;
+
+begin
+   if copy(source,2,1)='0' then
+     begin
+       delete(source,2,1);
+       insert(ch,source,2);
+     end;
+   replacing:=source;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+  edit3.text:=inttostr(AnsiCompareStr(replacing(edit1.Text,'a'), edit2.Text));
+  showmessage(edit1.Text+':'+ replacing(edit1.Text,'a'));
+end;
+
+procedure TForm1.Button7Click(Sender: TObject);
+Var F:TextFile;
+    Str:string;
+Begin
+  try
+    Str:='^XA^FO50,50^BCN,100^FD123456789^FS^XZ';
+    AssignFile(F, 'lpt1');
+    Rewrite(F);
+    Write(F, Str);
+    CloseFile(F);
+  Except
+    Messagedlg('数据发送失败！',mterror,[mbok],0);
+  End;
+end;
+
+end.

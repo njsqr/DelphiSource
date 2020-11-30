@@ -1,0 +1,464 @@
+Posted on 2011-09-03 21:08 清风轩 阅读(4563) 评论(0) 编辑 收藏
+注册表是windows系统的一个庞大数据库，它存储着系统硬件、软件及用户信息。适当修改注册表的参数值，可以提高系统的性能。注册表的修改通常有两种途径：其一是利用windows系统提供的"RegEdit"命令进行修改。此种方法虽说直观，但由于注册表的复杂性，对于一般用户来说，此方法并不十分可行。其二就是以编程方式来访问注册表。掌握这种方法，对于程序员来说，是一个重要的基本技术。因为在我们的编程过程中，很多地方都需要以程序方式去访问注册表。比如大家熟悉的"超级兔子"、"侠客修改器"等，都是以这种方式来完成对注册表的修改，从而达到保护系统或提高系统性能的目的。
+
+Windows注册表跟踪记录操作系统和各种在系统上安装的应用程序的有关信息。注册表是一个分层数据库。该数据库包含以特定格式表示的配置信息，并且可以直接通过注册表编辑器程序编辑，也可以通过应用程序修改。在早期的Windows版本中，INI文件粗略地完成了这一功能，尽管注册表与INI文件有一些相似之处，但不管怎样，由于组织结构的原因，注册表比传统的INI文件要复杂得多。
+
+注册表分成若干个主要部分，各个部分（或者说关键字）包含了不同种类的系统信息。比如说，当你创建一个应用程序时，你可以在HKEY_LOCAL_MACHINE这个部分的SOFTWARE子节中注册你的配置信息。应用程序可以把配置信息以多种数据类型（包括字符串、货币、日期、浮点数和布尔值）的形式保存在关键字中。本文通过实例介绍在Delphi的应用程序中如何对Windows 98的注册表进行操作（如：创建关键字、获取一个关键字的数据值、删除关键字、删除关键字中的数据值等），下列示例程序均在Delphi 4.0中调试通过，请放心使用。
+
+下面以一个实例为基础，讲解在DelPhi中如何以编程方式对注册表进行修改。通过本文的学习，你可以获得以下知识： 
+第一、明确编程访问注册表的基本思想； 
+第二、明确如何在程序中完成对注册表的读写操作； 
+第三、你可以将本文所述的方法移植到VC、VB等语言中，举一反三、触类旁通，达到随心所欲修改注册表的目的。 
+通过实践，你完全有可能编写出象"超级兔子"那样的系统修改器。 
+一、 实例叙述 
+1、 程序名称："隐藏驱动器"（Hide_Drive.exe） 
+2、 程序界面：程序运行时的界面如图一所示 
+ 
+3、 功能说明： 
+（1）用户可以选择"A驱"或"B驱"，或同时选择"A驱"和"B驱"，单击"隐藏"按钮，即可以隐藏"我的电脑"中的软盘驱动器。 
+（2）当程序启动时，可判断系统中软盘的当前状态。如果你的系统中软盘B已经是处于隐藏状态，程序启动时的界面则如图二所示。 
+ 
+4、 特别说明：此程序就是典型的对注册表进行读和写的操作。
+
+二、 编程思想 
+（一）、注册表中隐藏驱动器的原理 
+1、在DOS、WIN9X/NT中，驱动器是用字母A-Z表示。其中A和B表示软盘驱动器，C到Z则表示硬盘或网络驱动器。也就是说，总共可以支持26个驱动器。 
+2、在注册表的 
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer下新建或修改DWORD类型的NoDrives的值，可以隐藏或显示驱动器图标。从而达到本程序的目的。 
+3、NoDrives的取值特点 
+NoDrives是4字节共32位的键值。从第0位到第31位的取值，就分别控制着驱动器A到Z的状态。若第0位取值为1，则将隐藏驱动器A；若第1位为0，则显示驱动器B，如此类推即可。如图三所示： 
+ 
+（二）、DelPhi中对注册表的读写过程简介 
+在DelPhi中为程序员提供了一个Tregistry类，它提供了众多丰富的方法来完成对注册表的修改。限于篇幅，下面只针对本实例中所用到的读写注册表的方法进行简介： 
+（1）打开一个键：OpenKey（）； 
+function OpenKey(const Key: String; CanCreate: Boolean): Boolean; 
+（2）向一个键中写入整型数据：WriteInteger（）； 
+procedure WriteInteger(const Name: string; Value: Integer); 
+（3）读取一个键中某个具体的整型数值：ReadInteger（）； 
+function ReadInteger(const Name: String): Integer; 
+（4）判断某一键值是否存在：ValueExists（）； 
+function ValueExists(const Name: string): Boolean; 
+（5）关闭一个键：CloseKey； 
+procedure CloseKey; 
+（三）、设计方法（分为注册表的读写两部分） 
+1、"隐藏"按钮中代码的设计思想（注册表的写操作） 
+(1)、当用户单击"隐藏"按钮时，就利用OpenKey方法打开注册表的 HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer，判断其下是否存在"NoDrives"键。若此键不存在，就自动建立它。然后，根据用户选择的选择修改"NoDrives"的值。用户的选择和NoDrives的值对应关系如下： 
+用户选择"A驱"，则NoDrives的值为：1； 
+用户选择"B驱"，则NoDrives的值为：2； 
+用户同时选择"A驱"和"B驱"，则NoDrives的值为：3； 
+（2）、根据用户的选择，利用方法WriteInteger（），将NoDrives的值写入注册表； 
+（3）、利用CloseKey关闭打开的主键。 
+2、（注册表的读操作）为了实现程序启动时能自动判断系统驱动器的当前状态，还要在Form1的FormCreate（）方法中利用ReadInteger（）和ValueExists（）读取注册表中NoDrives的值。然后根据读出的NoDrives的值设置窗体上两个复选的选择状态。NoDrives的值与复选框的状态对应关系如下： 
+NoDrives的值为1，则窗体上"A驱"复选框处于选中状态； 
+NoDrives的值为2，则窗体上"B驱"复选框处于选中状态； 
+NoDrives的值为3，则窗体上"A驱"和"B驱"复选框同时处于选中状态；
+
+三、设计过程 
+（一）、界面的建立 
+1、启动DelPhi5，新建一个窗体Form1； 
+2、在窗体Form1上建立三个TbitBtn按钮、两个复选框TcheckBox、一个GroupBox1，调整各对象的位置，使其与图一所示。 
+（二） 、代码编辑 
+1、要使程序能够正确访问注册表，必须在单元文件unit Unit1的interface的 uses中增加注册表类：Registry。此句千万不能少。 
+2、按钮Bit_all（"全选"按钮）中的代码如下： 
+procedure TForm1.Bit_allClick(Sender: TObject); 
+begin 
+A_check.Checked:=true; 
+B_check.Checked:=true; 
+end; //当用户单击"全选"按钮时，将两个复选框都设为选中状态。 
+3、按钮Bit_cancel（"取消"按钮）中的代码如下： 
+procedure TForm1.Bit_cancelClick(Sender: TObject); 
+begin 
+A_check.Checked:=false; 
+B_check.Checked:=false; 
+end; //当用户单击"取消"按钮时，则取消复选框的选中状态。 
+4、按钮Bit_hide（"隐藏"按钮）中的代码如下（主要程序代码均放在这里，当用户按此按钮时，即完成隐藏驱动器的目的）： 
+
+procedure TForm1.Bit_hideClick(Sender: TObject);
+var myreg:TRegistry; // 定义Tregistry型变量myreg
+    temp1,temp2,myval:integer;//temp1和temp2分别保存复选框A_check和B_check的值；
+//myval用于保存写入注册表的最终值，它等于temp1和temp2的和。
+begin
+temp1:=0;
+temp2:=0;
+myval:=0; //初始三个变量。
+myreg:=TRegistry.Create;//利用Tregistry的Create方法创建一个实例myreg。
+with myreg do
+begin
+rootkey:=HKEY_LOCAL_MACHINE;//确定打开注册表的主键。
+if openkey('SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer',true) then
+begin //打开NoDrives所在的键。
+case form1.A_Check.Checked of
+true:
+temp1:=1;//当用户点击"A驱"复选框时，将临时变量temp1置1。
+end;
+case form1.B_Check.Checked of
+true:
+temp2:=2; //当用户点击"B驱"复选框时，将临时变量temp2置2。
+end;
+myval:=temp1+temp2;//将临时变量temp1和temp2中的值求和赋给myval。因为用户可，
+//能选中两个复选框，此时写入注册表的值应为1+2，所以用temp1与temp2的和赋给myval。
+WriteInteger('NoDrives',myval);//利用函数创建一个Dword值"NoDrives"，其值为myval
+//并写入注册表。
+myreg.CloseKey；//关闭前面打开的主键，完成隐藏操作。
+myreg.Free;
+end;
+end;
+end;
+
+5、为了实现程序启动时能自动判断系统驱动器的当前状态，还要在Form1的FormCreate（）方法中利用ReadInteger（）和ValueExists（）读取注册表中NoDrives的值。然后根据读出的NoDrives的值设置窗体上两个复选的选择状态。程序如下： 
+
+procedure TForm1.FormCreate(Sender: TObject);
+var myreg:TRegistry;
+begin
+myreg:=TRegistry.Create;
+with myreg do
+begin
+rootkey:=HKEY_LOCAL_MACHINE;
+if openkey('SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer',true) and ValueExists('NoDrives') then //如果打开键成功且NoDrives存在，则进行下面操作。
+begin
+if readinteger('NoDrives')=1 then //读取NoDrives的值，若为1，则将A_check设为选中。
+A_check.Checked:=true;
+if readinteger('NoDrives')=2 then//读取NoDrives的值，若为2，则将B_check设为选中。
+B_check.Checked:=true;
+if readinteger('NoDrives')=3 then//读取NoDrives的值，若为3，则将两个复选框均选中。
+
+begin
+A_check.Checked:=true;
+B_check.Checked:=true;
+end;
+myreg.CloseKey;
+myreg.Free;
+end;
+end;
+end;
+
+6、将以上程序保存为Hide_drive，然后编译成可执行程序Hide_Drive.exe即可。此程序在Win2000和Delphi5中运行通过。操作时隐藏了驱动器，请重新注销windows即可看到实际效果。
+四、结束语 
+在程序中访问注册表的基本方法是：打开注册表、读写注册表、关闭打开的主键。此实例程序本身虽然比较简单，但其访问注册表的方法却比较通用，你可以将此方法灵活运用到其他程序语言中，设计出满足要求的实用程序。其实在DelPhi中，Tregistry类为我们提供了更多更丰富的方法来操作注册表，但操作的方法仍然是一样的，希望通过本文的实例，能为广大Delphi爱好者或程序设计爱好者提供一点帮助。
+
+ 
+
+unit Unit1;
+interface
+uses
+Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+StdCtrls, Buttons,Registry; // 此处加上Registry，才能使程序访问注册表
+type
+TForm1 = class(TForm)
+A_Check: TCheckBox;
+B_Check: TCheckBox;
+Bit_all: TBitBtn;
+Bit_cancel: TBitBtn;
+Bit_hide: TBitBtn;
+GroupBox1: TGroupBox;
+procedure Bit_allClick(Sender: TObject);
+procedure Bit_cancelClick(Sender: TObject);
+procedure Bit_hideClick(Sender: TObject);
+procedure FormCreate(Sender: TObject);
+private
+{ Private declarations }
+public
+{ Public declarations }
+end;
+var
+Form1: TForm1;
+implementation
+{$R *.DFM}
+
+procedure TForm1.Bit_allClick(Sender: TObject);
+begin
+a_check.Checked:=true;
+b_check.Checked:=true;
+end;
+
+procedure TForm1.Bit_cancelClick(Sender: TObject);
+begin
+a_check.Checked:=false;
+b_check.Checked:=false;
+end;
+
+procedure TForm1.Bit_hideClick(Sender: TObject);
+var
+    myreg:TRegistry;
+    temp1,temp2,myval:integer;
+begin
+temp1:=0;
+temp2:=0;
+myval:=0;
+myreg:=TRegistry.Create;
+with myreg do
+begin
+rootkey:=HKEY_LOCAL_MACHINE;
+if openkey('SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer',true) then
+begin
+case form1.A_Check.Checked of
+true:
+temp1:=1;
+end;
+case form1.B_Check.Checked of
+true:
+temp2:=2;
+end;
+myval:=temp1+temp2;
+WriteInteger('NoDrives',myval);
+myreg.CloseKey;
+myreg.Free;
+end;
+end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+var 
+   myreg:TRegistry;
+begin
+myreg:=TRegistry.Create;
+with myreg do
+begin
+rootkey:=HKEY_LOCAL_MACHINE;
+if openkey('SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\explorer',true) and ValueExists('NoDrives') then
+begin
+if readinteger('NoDrives')=1 then
+A_check.Checked:=true;
+if readinteger('NoDrives')=2 then
+B_check.Checked:=true;
+if readinteger('NoDrives')=3 then
+begin
+A_check.Checked:=true;
+B_check.Checked:=true;
+end;
+myreg.CloseKey;
+myreg.Free;
+end;
+end;
+end;
+end.
+
+附：为了使大家能对此程序有一个完整的了解，下面附上源程序，请大家指教！
+
+Delphi中定义了一个Tregistry类，通过使用这个类中封装的很多有关对注册表操作的方法和属性可以完成对注册表的操作。
+
+1、 在注册表中创建一个新的关键字
+
+Tregistry类中有一个CreateKey方法，使用该方法可以在注册表中创建一个新的关键字，该方法的原型声明为：function CreateKey(const Key: string) : Boolean;
+
+示例代码如下：
+
+unit passwd;
+interface
+uses
+ Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+ StdCtrls, Registry;
+type
+ Tpassword = class(TForm)
+    Label1: TLabel;
+    Button1: TButton;
+    procedure Button1Click(Sender: TObject);
+ private
+     { Private declarations }
+ public
+    { Public declarations }
+ end;
+implementation
+
+{$R *.DFM}
+procedure Tpassword.Button1Click(Sender: TObject);
+
+var
+
+ MyReg : TRegistry;
+begin
+
+ MyReg := TRegistry.Create;
+ MyReg.RootKey := HKEY_LOCAL_MACHINE;
+ try
+    if MyReg.OpenKey('"SOFTWARE"',FALSE) then
+      if not MyReg.KeyExists('Passwd') then
+        begin
+         MyReg.CreateKey('Passwd');
+         if MyReg.OpenKey('"SOFTWARE"Passwd',FALSE) then
+           Label1.Caption := '关键字Passwd已建立!'
+         else
+           Label1.Caption := '关键字Passwd无法建立!';
+        end
+      else
+        Label1.Caption := '关键字Passwd已经存在!'
+    else
+      Label1.Caption := '注册表打不开!';
+    MyReg.CloseKey;
+ finally
+    MyReg.Free;
+ end;
+end;
+end.
+
+2、 向注册表关键字中写入相关的数据值
+
+在Tregistry类中提供了一系列的Write方法用来写入与当前关键字相关的数据值。常用方法的原型定义如下：
+
+procedure WriteString(const Name, Value : string);
+procedure WriteInteger(const Name : string ; Value : Integer);
+procedure WriteFloat(const Name : string ; Value : Double);
+procedure WriteTime(const Name : string ; Value : TDateTime);
+procedure WriteBool(const Name : string ; Value : Boolean);
+
+示例代码：
+
+4、 从注册表删除关键字或指定的数据值
+
+使用Tregistry中提供的DeleteKey和DeleteValue方法可以删除指定的关键字和数据值。这两个方法的原型定义如下：
+
+function DeleteKey(const Key : string) : Boolean;
+function DeleteValue(const Key : string) : Boolean;
+
+使用DeleteKey方法删除指定的关键字时，如果被删除的关键字在任何层次有子关键字，它们将同时被删除。上面两个方法在执行时，如果删除成功，则返回True；否则返回False。
+
+示例程序如下：
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+ MyReg : TRegistry;
+begin
+ MyReg := TRegistry.Create;
+ MyReg.RootKey := HKEY_LOCAL_MACHINE;
+ try
+    if not MyReg.OpenKey('"SOFTWARE"Passwd',FALSE) then ;
+    if MyReg.DeleteValue('pwd1') then
+      label1.Caption := 'value [pwd1] has deleted!';
+    MyReg.CloseKey;
+    if not MyReg.OpenKey('"SOFTWARE"',FALSE) then ;
+    if MyReg.DeleteKey('Passwd') then
+      label2.Caption := 'Key [passwd] has deleted!';
+    MyReg.CloseKey;
+ finally
+    MyReg.Free;
+ end;
+end;
+
+
+
+
+
+
+二维码打印
+   ^XA 
+      ^FO20,20
+      ^BQ,2,10
+      ^FDLA,0123456789ABCD 2D code^FS
+   ^XZ
+ 10.二维码：^BQ
+   ^BQ字段位置，模型，放大倍数（^BQ,2,10  无旋转，模型：增强，放大倍数：10）
+   ^BQ =二维码条码
+      a =字段位置 
+         默认值:正常。 
+         其他值: 没有旋转是可用的。^的FW命令不影响旋转。
+     b =模型  默认值:2(增强) 推荐  其他值:1(原创)
+     c =放大倍数  默认值:1在150 dpi打印机  2在200 dpi打印机 3在300 dpi打印机 其他值:4至10
+        （c值不同条码大小不同）
+ 11.纠错能力：
+    L级：约可纠错7%的数据码字
+    M级：约可纠错15%的数据码字
+    Q级：约可纠错25%的数据码字
+    H级：约可纠错30%的数据码字
+
+
+
+
+
+Eg1:
+^XA
+^FO20,20
+^BQ,2,10
+^FDD03040C,LA,博客园的筒子们好^FS
+^XZ
+Eg2：
+^XA
+^FO20,20
+^BQ,2,10
+^FDQA,博客园的筒子们好^FS
+^XZ
+
+
+
+The ^BQ (QR Code) is a matrix symbology consisting of an array of 
+nominally square modules arranged in an overall square pattern. A 
+unique pattern at three of the symbols four corners assists in 
+determining the bar code size, position, and inclination. 
+
+A wide range of symbol sizes is possible along with four levels of 
+error correction. User-specified Module dimensions provide a wide 
+variety of symbol production techniques. 
+
+QR Code model 1 is the original specification while QR Code model 2 
+is an enhanced form of the symbology. Model 2 provides additional 
+features and can be automatically differentiated from model 1. 
+
+This bar code is printed using field data specified in a subsequent ^FD 
+stream. 
+
+Encodable character sets include numeric data, alphanumeric data, 
+8-bit byte data, and Kanji characters. 
+
+
+Example: ZPL and label output 
+
+^XA 
+^FO20,20^BQN,2,10^FDMM,AAC-42^FS 
+^XZ 
+
+
+ZPL II COMMAND REFERENCE 
+155 
+The format for the ^BQ instruction is: 
+
+^BQa,b,c 
+
+where 
+^BQ = 
+a = 
+b = 
+QR Code Bar Code 
+
+Field Position 
+Default value: Normal. 
+Other values: 
+No rotation is available. The ^FW command 
+has no effect on rotation. 
+Model 
+Default value: 
+
+Other values: 
+2 (Enhanced) 
+Recommended 
+1 (Original) 
+C 
+O 
+M 
+M 
+A 
+N 
+D 
+
+R 
+E 
+F 
+E 
+R 
+E 
+N 
+C 
+E 
+c = 
+Magnification Factor 
+Default value: 
+Other values: 
+1 on 150 dpi printers 
+2 on 200 dpi printers 
+3 on 300 dpi printers 
+4 through 10 
+The following pages provide specific information about the formatting 
+of the ^BQ instruction and the ^FD statements which contain the 
+information to be bar coded. 
+
+If additional information is required, refer to the 
+International Symbology Specification - QR Code 
+published by AIM International, Inc. 

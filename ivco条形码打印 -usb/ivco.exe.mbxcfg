@@ -1,0 +1,22 @@
+
+box.cmdline=
+box.encrypt=1
+box.packdefault=1
+box.pattern=*.*
+box.separate=0
+box.sepfile=
+box.ziplevel=1
+dir.addfiles=F:\delphi\ivco条形码打印
+exe.crc=0
+exe.pack=1
+exe.packedfilesvisible=1
+exe.source=F:\delphi\ivco条形码打印\ivco.exe
+exe.target=C:\Documents and Settings\Administrator\桌面\IVECO打印系统\IVECO打印系统.exe
+key.0=ED0A664EACB41BDE18E86D45CD07B3BB
+key.1=47A1AC1F9D2D813403959091A4906983
+
+box.contents~
+00 Fnthex32.dll
+00 HELP.HLP
+00 TXM.mdb
+~

@@ -1,0 +1,23 @@
+（转载）EhLib 在 Delphi 7 下的安装方法
+EhLib 在 Delphi 7 下的安装方法
+
+1、将 EhLib 解压到一个目录，如：E:\VCL\EhLib；
+
+2、将 EhLib 安装目录下 Common 目录、DataService 目录下的所有文件拷贝到 EhLib 安装目录下的 Delphi 7 目录；
+
+3、启动 Delphi 7；
+
+4、选择 File — Open Project，跳转到 EhLib 安装目录，在出现的打开文件对话框文件类型下拉列表中选择 Delphi Package（*.dpk；*.dpkw），
+在文件列表中选择 EhLib70.dpk 打开，然后在出现的 Package 窗口中点击按钮 Compile，编译此包；
+
+5、按照上一步相同的方法打开 DclEhLib70.dpk，点击 Compile ，然后再点击 Install ，安装此设计时包；
+
+6、打开 Delphi 菜单－Tools－Environment Options－Library－Library Path，将 EhLib 安装目录下的 Delphi 7 目录添加到库搜索路径中，
+本例中该路径是 E:\VCL\EhLib\Delphi7。
+
+至此，EhLib 在 Delphi 7 下即安装成功，在关闭上述打开的包文件时，会提示是否保存，在此处选择否，不保存。
+
+EhLib 在 Delphi 5、Delphi 6、Delphi 8 下依上述方法都可正确安装。
+
+EhLib 在 Delphi 2007、Delphi 2006 下的安装步骤跟上述也完全相同，不同在于他们新添加了两个包，
+按照上述第 4 步指示方法安装 EhLibDataDrivers110.dpk、按照第 5 步所示方法安装 DclEhLibDataDrivers110.dpk 即可。

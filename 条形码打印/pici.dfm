@@ -1,0 +1,65 @@
+object Form2: TForm2
+  Left = 307
+  Top = 231
+  Width = 430
+  Height = 307
+  BorderIcons = [biSystemMenu]
+  Caption = #35774#23450#25209#27425
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  PixelsPerInch = 96
+  TextHeight = 13
+  object MonthCalendar1: TMonthCalendar
+    Left = 0
+    Top = 0
+    Width = 422
+    Height = 225
+    Align = alTop
+    CalColors.MonthBackColor = clWindow
+    Date = 40448.478682488430000000
+    Font.Charset = GB2312_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = #40657#20307
+    Font.Style = [fsBold]
+    ParentFont = False
+    TabOrder = 0
+  end
+  object Button1: TButton
+    Left = 64
+    Top = 232
+    Width = 81
+    Height = 25
+    Caption = #30830#23450
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = #23435#20307
+    Font.Style = [fsBold]
+    ParentFont = False
+    TabOrder = 1
+    OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 272
+    Top = 232
+    Width = 81
+    Height = 25
+    Caption = #21462#28040
+    Font.Charset = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = #23435#20307
+    Font.Style = [fsBold]
+    ParentFont = False
+    TabOrder = 2
+    OnClick = Button2Click
+  end
+end
